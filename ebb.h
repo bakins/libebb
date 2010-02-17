@@ -63,7 +63,8 @@ struct ebb_server {
 
   /* Allocates and initializes an ebb_connection.  NULL by default. */
   ebb_connection* (*new_connection) (ebb_server*, struct sockaddr_in*);
-
+  void (*start_connection) (ebb_connection *);
+    
   void *data;
 };
 
@@ -72,6 +73,7 @@ struct ebb_connection {
   struct sockaddr_in sockaddr; /* ro */
   socklen_t socklen;           /* ro */ 
   ebb_server *server;          /* ro */
+  struct ev_loop *loop;        /* ro */
   char *ip;                    /* ro */
   unsigned open:1;             /* ro */
 
@@ -116,5 +118,6 @@ void ebb_connection_init (ebb_connection *);
 void ebb_connection_schedule_close (ebb_connection *);
 void ebb_connection_reset_timeout (ebb_connection *);
 int ebb_connection_write (ebb_connection *, const char *buf, size_t len, ebb_after_write_cb);
+void ebb_connection_start(ebb_connection *connection);
 
 #endif
