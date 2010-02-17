@@ -81,11 +81,11 @@ close_connection(ebb_connection *connection)
 {
 #ifdef HAVE_GNUTLS
   if(connection->server->secure)
-    ev_io_stop(connection->server->loop, &connection->handshake_watcher);
+    ev_io_stop(connection->loop, &connection->handshake_watcher);
 #endif
-  ev_io_stop(connection->server->loop, &connection->read_watcher);
-  ev_io_stop(connection->server->loop, &connection->write_watcher);
-  ev_timer_stop(connection->server->loop, &connection->timeout_watcher);
+  ev_io_stop(connection->loop, &connection->read_watcher);
+  ev_io_stop(connection->loop, &connection->write_watcher);
+  ev_timer_stop(connection->loop, &connection->timeout_watcher);
 
   if(0 > close(connection->fd))
     error("problem closing connection fd");
@@ -457,7 +457,6 @@ on_connection(struct ev_loop *loop, ev_io *watcher, int revents)
   //printf("on connection!\n");
 
   assert(server->listening);
-  assert(server->loop == loop);
   assert(&server->connection_watcher == watcher);
   
   if(EV_ERROR & revents) {
@@ -489,15 +488,33 @@ on_connection(struct ev_loop *loop, ev_io *watcher, int revents)
   connection->fd = fd;
   connection->open = TRUE;
   connection->server = server;
+  
   memcpy(&connection->sockaddr, &addr, addr_len);
   if(server->port[0] != '\0')
     connection->ip = inet_ntoa(connection->sockaddr.sin_addr);  
-
+  
 #ifdef SO_NOSIGPIPE
   int arg = 1;
   setsockopt(fd, SOL_SOCKET, SO_NOSIGPIPE, &arg, sizeof(int));
 #endif
+  
+  if(server->start_connection) {
+      server->start_connection(connection);
+  }
+  
+}
 
+void ebb_connection_start(ebb_connection *connection)
+{
+  ebb_server *server = connection->server;
+  struct ev_loop *loop;
+
+  if(!connection->loop) {
+      connection->loop = server->loop;
+  }
+  loop  = connection->loop;
+ 
+  /*Need thread safe session cache?*/
 #ifdef HAVE_GNUTLS
   if(server->secure) {
     gnutls_init(&connection->session, GNUTLS_SERVER);
@@ -652,6 +669,7 @@ ebb_server_init(ebb_server *server, struct ev_loop *loop)
 #endif
 
   server->new_connection = NULL;
+  server->start_connection = ebb_connection_start;
   server->data = NULL;
 }
 
@@ -758,11 +776,11 @@ ebb_connection_schedule_close (ebb_connection *connection)
 #ifdef HAVE_GNUTLS
   if(connection->server->secure) {
     ev_io_set(&connection->goodbye_tls_watcher, connection->fd, EV_READ | EV_WRITE);
-    ev_io_start(connection->server->loop, &connection->goodbye_tls_watcher);
+    ev_io_start(connection->loop, &connection->goodbye_tls_watcher);
     return;
   }
 #endif
-  ev_timer_start(connection->server->loop, &connection->goodbye_watcher);
+  ev_timer_start(connection->loop, &connection->goodbye_watcher);
 }
 
 /* 
@@ -771,7 +789,7 @@ ebb_connection_schedule_close (ebb_connection *connection)
 void 
 ebb_connection_reset_timeout(ebb_connection *connection)
 {
-  ev_timer_again(connection->server->loop, &connection->timeout_watcher);
+  ev_timer_again(connection->loop, &connection->timeout_watcher);
 }
 
 /**
@@ -792,7 +810,7 @@ ebb_connection_write (ebb_connection *connection, const char *buf, size_t len, e
   connection->to_write_len = len;
   connection->written = 0;
   connection->after_write_cb = cb;
-  ev_io_start(connection->server->loop, &connection->write_watcher);
+  ev_io_start(connection->loop, &connection->write_watcher);
   return TRUE;
 }
 
