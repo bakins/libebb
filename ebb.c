@@ -736,6 +736,7 @@ ebb_connection_init(ebb_connection *connection)
   connection->server = NULL;
   connection->ip = NULL;
   connection->open = FALSE;
+  connection->loop = NULL;
 
   ebb_request_parser_init( &connection->parser );
   connection->parser.data = connection;
