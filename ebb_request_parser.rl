@@ -275,7 +275,7 @@ static int unhex[] = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
                )
              )
            | ("Transfer-Encoding"i %use_chunked_encoding hsep "identity" %use_identity_encoding)
-         # | ("Expect"i hsep "100-continue"i %expect_continue)
+          | ("Expect"i hsep "100-continue"i %expect_continue)
          # | ("Trailer"i hsep field_value %trailer)
            | (Field_Name hsep Field_Value)
            ) :> CRLF;
