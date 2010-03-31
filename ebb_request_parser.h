@@ -76,6 +76,7 @@ struct ebb_request {
   ebb_element_cb on_path;
   ebb_element_cb on_query_string;
   ebb_element_cb on_uri;
+  ebb_element_cb on_version;
   ebb_element_cb on_fragment;
   ebb_header_cb  on_header_field;
   ebb_header_cb  on_header_value;
@@ -94,7 +95,8 @@ struct ebb_request_parser {
   const char *header_value_mark; 
   const char *query_string_mark; 
   const char *path_mark; 
-  const char *uri_mark; 
+  const char *uri_mark;
+  const char *version_mark; 
   const char *fragment_mark; 
 
   /* Public */

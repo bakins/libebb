@@ -76,6 +76,7 @@ static int unhex[] = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
   action mark_query_string   { parser->query_string_mark   = p; }
   action mark_request_path   { parser->path_mark           = p; }
   action mark_request_uri    { parser->uri_mark            = p; }
+  action mark_version        { parser->version_mark        = p; }
 
   action write_field { 
     HEADER_CALLBACK(header_field);
@@ -90,6 +91,11 @@ static int unhex[] = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
   action request_uri { 
     CALLBACK(uri);
     parser->uri_mark = NULL;
+  }
+
+  action version {
+      CALLBACK(version);
+      parser->version_mark = NULL;
   }
 
   action fragment { 
@@ -241,7 +247,7 @@ static int unhex[] = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
            | "UNLOCK"    %{ if(CURRENT) CURRENT->method = EBB_UNLOCK;    }
            ); # Not allowing extension methods
 
-  HTTP_Version = "HTTP/" digit+ $version_major "." digit+ $version_minor;
+  HTTP_Version = ( "HTTP/" digit+ $version_major "." digit+ $version_minor ) >mark_version %version;
 
   scheme = ( alpha | digit | "+" | "-" | "." )* ;
   absolute_uri = (scheme ":" (uchar | reserved )*);
@@ -327,6 +333,7 @@ void ebb_request_parser_init(ebb_request_parser *parser)
   
   parser->current_request = NULL;
 
+  parser->version_mark =
   parser->header_field_mark = parser->header_value_mark   = 
   parser->query_string_mark = parser->path_mark           = 
   parser->uri_mark          = parser->fragment_mark       = NULL;
@@ -358,6 +365,7 @@ size_t ebb_request_parser_execute(ebb_request_parser *parser, const char *buffer
   if(parser->query_string_mark)   parser->query_string_mark   = buffer;
   if(parser->path_mark)           parser->path_mark           = buffer;
   if(parser->uri_mark)            parser->uri_mark            = buffer;
+  if(parser->version_mark)        parser->version_mark        = buffer;
 
   %% write exec;
 
@@ -369,6 +377,7 @@ size_t ebb_request_parser_execute(ebb_request_parser *parser, const char *buffer
   CALLBACK(query_string);
   CALLBACK(path);
   CALLBACK(uri);
+  CALLBACK(version);
 
   assert(p <= pe && "buffer overflow after parsing execute");
 
@@ -402,6 +411,7 @@ void ebb_request_init(ebb_request *request)
   request->on_header_field = NULL;
   request->on_header_value = NULL;
   request->on_uri = NULL;
+  request->on_version = NULL;
   request->on_fragment = NULL;
   request->on_path = NULL;
   request->on_query_string = NULL;
