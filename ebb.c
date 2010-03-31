@@ -277,7 +277,7 @@ static void
 on_readable(struct ev_loop *loop, ev_io *watcher, int revents)
 {
   ebb_connection *connection = watcher->data;
-  char recv_buffer[TCP_MAXWIN];
+  char recv_buffer[4096];
   ssize_t recved;
 
   //printf("on_readable\n");
@@ -308,7 +308,7 @@ on_readable(struct ev_loop *loop, ev_io *watcher, int revents)
   } else {
 #endif /* HAVE_GNUTLS */
 
-    recved = recv(connection->fd, recv_buffer, TCP_MAXWIN, 0);
+    recved = recv(connection->fd, recv_buffer, 4096, 0);
     if(recved <= 0) goto error;
 
 #ifdef HAVE_GNUTLS
